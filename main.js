@@ -6,20 +6,15 @@ var fs = require('fs');
 var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요청 res: 응답
 {
     var queryData = url.parse(req.url, true).query;
+    var pathName = url.parse(req.url, true).pathname;
+
     var urlPath = req.url; //주소창에 입력한 주소 ex) /index.html 
     var title = queryData.id;
 
-    if(req.url == '/') //메인 페이지(루트 주소)
+    if(pathName == '/')
     {
-        title = '이것은 첫번째 페이지';
-    }
-    else if(req.url == '/favicon.ico')
-    {
-        return res.writeHead(404);
-    }
-
-    fs.readFile(`page/${title}`, 'utf-8', function(err, data)
-    {
+        fs.readFile(`page/${title}`, 'utf-8', function(err, data)
+        {
         var template = `
         <!DOCTYPE html>
         <html lang="kr">
@@ -62,9 +57,14 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
         //console.log(__dirname+urlPath);
     
         res.end(template);
+        });
+    }
 
-    });
-
+    else
+    {
+        res.writeHead(404, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end('404 Not Found 돌아가십숑숑숑')
+    }
 });
 app.listen(3000); //서버를 3000번 포트에 연다.
 
