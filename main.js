@@ -7,6 +7,17 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
 {
     var queryData = url.parse(req.url, true).query;
     var urlPath = req.url; //주소창에 입력한 주소 ex) /index.html 
+    var title = queryData.id;
+
+    if(req.url == '/') //메인 페이지(루트 주소)
+    {
+        title = '이것은 첫번째 페이지';
+    }
+    else if(req.url == '/favicon.ico')
+    {
+        return res.writeHead(404);
+    }
+
     var template = `
     <!DOCTYPE html>
     <html lang="kr">
@@ -15,27 +26,23 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
         <title>Web-204 ${queryData.id}</title>
     </head>
     <body>
-        <h1><a href="index.html">${queryData.id}시간표</a></h1> 
-        <h2>${queryData.id} 시간표</h2>
+    <!-- 주석 제목 눌렀을 때 메인 페이지로 -->
+        <h1><a href="/">${title}시간표</a></h1> 
+        <h2>${title} 시간표</h2>
     
         <ol>
-            <li><a href="list1.html">1교시</a></li>
-            <li><a href="list2.html">2교시</a></li>
-            <li><a href="list3.html">3교시</a></li>
+            <li><a href="/?id=list1">1교시</a></li>
+            <li><a href="/?id=list2">2교시</a></li>
+            <li><a href="/?id=list3">3교시</a></li>
         </ol>
+
+        <p> 
+            ${title}
+        </p>
     
     </body>
     </html>
     `;
-
-    if(req.url == '/') //메인 페이지(루트 주소)
-    {
-        urlPath = '/index.html';
-    }
-    else if(req.url == '/favicon.ico')
-    {
-        return res.writeHead(404);
-    }
 
     //console.log(queryData);
 
