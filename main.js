@@ -2,9 +2,10 @@ const { error } = require('console');
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
+var qs = require('querystring');
 
 //템플릿 함수화
-function templateHTML(title, list, data){
+function templateHTML(title, list, data, control){
     return `
                 <!DOCTYPE html>
                 <html lang="kr">
@@ -17,6 +18,8 @@ function templateHTML(title, list, data){
                     <h1><a href="/">${title}</a></h1> 
                     <h2>${title} 시간표</h2>
                     ${list}
+                    <a href="/create">글 쓰기</a>
+                    ${control}
                     <p> 
                         ${data}
                     </p>
@@ -61,7 +64,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                 var data = '첫 번째 페이지';
 
                 var list = templateList(filelist);
-                var template = templateHTML(title, list, data);
+                var template = templateHTML(title, list, data, '');
     
                 res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                 res.end(template);
@@ -77,7 +80,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                     var title = queryData.id;
 
                     var list = templateList(filelist);
-                    var template = templateHTML(title, list, data);
+                    var template = templateHTML(title, list, data, `<a href="update?id=${title}">글 수정</a>`);
 
                     res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                     res.end(template); //저장한 데이터를 출력
@@ -90,6 +93,80 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
     {
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end('hahahahohoho'); //end는 꼭 있어야함.
+    }
+
+    else if(pathName == '/create')
+    {
+        fs.readdir('./page', function(err, filelist){
+            var title = '글 쓰기 페이지';
+            var list = templateList(filelist);
+            var data = `
+            <form action="http://localhost:3000/process_create" method="post">
+                    <p>
+                     <input type="text" name="title" placeholder="제목">
+                    </p>
+
+                    <p>
+                         <textarea name="description" placeholder="본문"></textarea>
+                     </p>
+
+                     <p>
+                        <input type="submit">
+                    </p>
+                </form>
+            `;
+            var template = templateHTML(title, list, data, "");
+            res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+            res.end(template)
+        })
+    }
+
+    else if(pathName == "/process_create")
+    {
+        //post 방식 데이터 받기
+        var body = "";
+        req.on('data', function(data){
+            //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
+            body += data;
+        })
+        req.on('end', function(){
+            var postData = qs.parse(body);
+            var title = postData.title;
+            var description = postData.description;
+
+            fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
+                res.writeHead(302, {Location: encodeURI(`/?id=${title}`)});
+                res.end()
+            })
+        })
+    }
+
+    else if(pathName == "/update")
+    {
+        fs.readdir('./page', function(err, filelist){
+            var title = queryData.id; //수정하려는 글의 제목
+            var list = templateList(filelist);
+            var data = `
+            <form action="http://localhost:3000/process_update" method="post">
+                <p>
+                <!-- 수정 전 제목 전달 -->
+                    <input type="hidden" name="id" value=${title}>
+                    <input type="text" name="title" placeholder="제목">
+                </p>
+
+                <p>
+                    <textarea name="description" placeholder="본문"></textarea>
+                </p>
+
+                <p>
+                    <input type="submit">
+                </p>
+            </form>
+            `;
+            var template = templateHTML(title, list, data, `<a href="/update?id=${title}">글 수정</a>`);
+            res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+            res.end(template)
+        })
     }
         
     //404
