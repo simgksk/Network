@@ -3,46 +3,7 @@ var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var qs = require('querystring');
-
-//템플릿 함수화
-function templateHTML(title, list, data, control){
-    return `
-                <!DOCTYPE html>
-                <html lang="kr">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Web-204 ${title}</title>
-                </head>
-                <body>
-                <!-- 주석, 제목 눌렀을 때 메인 페이지로 -->
-                    <h1><a href="/">${title}</a></h1> 
-                    <h2>${title} 시간표</h2>
-                    ${list}
-                    <a href="/create">글 쓰기</a>
-                    ${control}
-                    <p> 
-                        ${data}
-                    </p>
-                
-                </body>
-                </html>
-            `;
-}
-
-function templateList(filelist){
-    //list 변수 생성
-    var list = '<ol>'; // <ol> 태그로 시작
-    var i = 0;
-
-    while(i<filelist.length)
-    {
-        list += `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`;
-        i += 1;
-    };
-    list += '</ol>';
-
-    return list;
-}
+var templateObject = require('./lib/template.js');
 
 var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요청한 내용이 담겨있음.(url) / res: 응답, 화면에 뜨는 모든 것
 {
@@ -63,8 +24,8 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                 var title = 'Welcome';
                 var data = '첫 번째 페이지';
 
-                var list = templateList(filelist);
-                var template = templateHTML(title, list, data, '');
+                var list = templateObject.list(filelist);
+                var template = templateObject.html(title, list, data, '');
     
                 res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                 res.end(template);
@@ -79,7 +40,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                 {
                     var title = queryData.id;
 
-                    var list = templateList(filelist);
+                    var list = templateObject.list(filelist);
                     var deleteForm =`
                         <form action="process_delete" method="post">
                         <!-- 삭제할 글 제목 -->
@@ -88,7 +49,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                         </form>
                     `;
 
-                    var template = templateHTML(title, list, data, `<a href="update?id=${title}">글 수정</a> ${deleteForm}`);
+                    var template = templateObject.html(title, list, data, `<a href="update?id=${title}">글 수정</a> ${deleteForm}`);
 
                     res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                     res.end(template); //저장한 데이터를 출력
@@ -107,7 +68,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
     {
         fs.readdir('./page', function(err, filelist){
             var title = '글 쓰기 페이지';
-            var list = templateList(filelist);
+            var list = templateObject.list(filelist);
             var data = `
             <form action="http://localhost:3000/process_create" method="post">
                     <p>
@@ -123,7 +84,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                     </p>
                 </form>
             `;
-            var template = templateHTML(title, list, data, "");
+            var template = templateObject.html(title, list, data, "");
             res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
             res.end(template)
         })
@@ -155,7 +116,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
             fs.readFile(`page/${queryData.id}`, 'utf-8', function(err, fileData){
 
                 var title = queryData.id; //수정하려는 글의 제목
-                var list = templateList(filelist);
+                var list = templateObject.list(filelist);
                 var data = `
                 <form action="http://localhost:3000/process_update" method="post">
                     <p>
@@ -173,7 +134,7 @@ var app = http.createServer(function(req, res) //app: 서버의 객체 req: 요�
                     </p>
                         </form>
                 `;
-                var template = templateHTML(title, list, data, `<a href="/update?id=${title}">글 수정</a>`);
+                var template = templateObject.html(title, list, data, `<a href="/update?id=${title}">글 수정</a>`);
                 res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                 res.end(template)
             })
