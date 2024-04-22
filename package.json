@@ -1,0 +1,20 @@
+{
+  "name": "network",
+  "version": "1.0.0",
+  "description": "Express Node.js",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "hana",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
