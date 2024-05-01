@@ -1,5 +1,6 @@
 //Express 메인 파일
 const express = require('express')
+const bodyParser = require('body-parser');
 
 const url = require('url');
 const fs = require('fs');
@@ -9,6 +10,21 @@ const templateObject = require('./lib/template.js');
 const app = express()
 const port = 3000
 
+//미들웨어 (순서가 매우 중요!) //next: 말 그대로 다음 미들웨어로 넘어가는 매개변수
+app.use(bodyParser.urlencoded({extended: false}))
+
+//readdir를 미드웨어로 //모든 get 요청에 대해서만 실행 (경로지정)
+app.get('*', (req, res, next)=>{
+    //폴더 내 글 목록을 list에 저장
+    fs.readdir('./page', function(err, filelist){
+        req.list = filelist;
+        next(); //req 데이터를 그대로 다음 미들웨어로 전달
+    });
+})
+
+//정적 파일 미들웨어
+app.use(express.static('public'));
+
 //라우팅 --> path마다 응답
 //메인 페이지
 app.get('/', (req, res) => {
@@ -16,30 +32,32 @@ app.get('/', (req, res) => {
     //const queryData = url.parse(req.url, true).query;
 
     //파일 목록 불러오기
-    fs.readdir('./page', function(err, filelist)
-    {
+    
         const title = 'Welcome';
-        const data = '첫 번째 페이지';
+        const data = `첫 번째 페이지
+        <p>
+            <img src="/BMO.jpg" style="width:300px">
+        </p>
+        `;
 
-        const list = templateObject.list(filelist);
+        const list = templateObject.list(req.list);
         const template = templateObject.html(title, list, data, '');
 
         //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         //res.end(template);
 
         res.send(template); //writeHead + end
-    })
+    
 });
 
 //목차 페이지 라우팅(라우트 파라미터 사용)
 app.get('/page/:pageId', (req, res)=>{
-
     fs.readdir('./page', function(err, filelist)
     {
         fs.readFile(`page/${req.params.pageId}`, 'utf-8', function(err, data) //list를 data에 저장
         {
             const title = req.params.pageId;
-            const list = templateObject.list(filelist);
+            const list = templateObject.list(req.list);
             const deleteForm =`
                 <form action="/process_delete" method="post">
                 <!-- 삭제할 글 제목 -->
@@ -63,7 +81,7 @@ app.get('/page/:pageId', (req, res)=>{
 app.get('/create', (req, res)=>{
     fs.readdir('./page', function(err, filelist){
         const title = '글 쓰기 페이지';
-        const list = templateObject.list(filelist);
+        const list = templateObject.list(req.list);
         const data = `
         <form action="http://localhost:3000/process_create" method="post">
                 <p>
@@ -87,7 +105,7 @@ app.get('/create', (req, res)=>{
 
 //post 방식으로 데이터를 보냈을 때
 app.post('/process_create', (req, res)=>{
-    let body = "";
+    /*let body = "";
     req.on('data', function(data){
         //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
         body += data;
@@ -97,6 +115,13 @@ app.post('/process_create', (req, res)=>{
         const postData = qs.parse(body);
         const title = postData.title;
         const description = postData.description;
+    })*/
+
+    //
+    var postData = req.body;
+    const title = postData.title;
+    const description = postData.description;
+
         fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
             //리다이렉션
             //res.writeHead(302, {Location: encodeURI(`/page/${title}`)});
@@ -104,7 +129,6 @@ app.post('/process_create', (req, res)=>{
             //express 리다이렉션
             res.redirect(encodeURI(`/page/${title}`));
         })
-    })
 });
 
 //글 수정 라우터
@@ -140,7 +164,7 @@ app.get('/update/:pageId', (req, res)=>{
 
 app.post('/process_update', (req, res)=>{
     //post 방식 데이터 받기
-    let body = "";
+    /*let body = "";
     req.on('data', function(data){
         //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
         body += data;
@@ -151,24 +175,28 @@ app.post('/process_update', (req, res)=>{
         const description = postData.description;
         const id = postData.id //수정 전 제목
 
-        //글 수정
-        //1. 제목 변경
-        fs.rename(`page/${id}`, `page/${title}`, function(err){
-            //2. 본문 변경
-            fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
-                //리다이렉션
-                //res.writeHead(302, {Location: encodeURI(`/page/${title}`)});
-                //res.end()
+    })*/
+    const postData = req.body;
+    const title = postData.title;
+    const description = postData.description;
+    const id = postData.id
+    //글 수정
+    //1. 제목 변경
+    fs.rename(`page/${id}`, `page/${title}`, function(err){
+        //2. 본문 변경
+        fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
+            //리다이렉션
+            //res.writeHead(302, {Location: encodeURI(`/page/${title}`)});
+            //res.end()
 
-                res.redirect(`/page/${title}`)
-            })
+            res.redirect(`/page/${title}`)
         })
     })
 })
 
 app.post('/process_delete', (req, res)=>{
     //post 방식 데이터 받기
-    let body = "";
+    /*let body = "";
     req.on('data', function(data){
         //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
         body += data;
@@ -178,10 +206,12 @@ app.post('/process_delete', (req, res)=>{
         const id = postData.id //삭제할 파일의 제목
 
         //글 삭제 (디렉토리에서 파일을 삭제)
-        fs.unlink(`page/${id}`, function(){
-            //파일 삭제가 끝나면 메인 화면으로 리다이렉션
-            res.redirect('/');
-        })
+    })*/
+    const postData = req.body;
+    const id = postData.id 
+    fs.unlink(`page/${id}`, function(){
+        //파일 삭제가 끝나면 메인 화면으로 리다이렉션
+        res.redirect('/');
     })
 })
 
@@ -189,6 +219,7 @@ app.post('/process_delete', (req, res)=>{
 app.get('/users/:userId/key/:keyId', (res, req)=>{
     res.send(`${req.params.userId} ${res.params.keyId}`);
 })
+app.get('/users/:userId');
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
