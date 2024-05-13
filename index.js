@@ -5,7 +5,9 @@ const bodyParser = require('body-parser');
 const url = require('url');
 const fs = require('fs');
 const qs = require('querystring');
-const cookieParser = require('cookie-parser');
+//const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const fileStore = require('session-file-store')(session);
 const templateObject = require('./lib/template.js');
 
 const app = express()
@@ -13,7 +15,23 @@ const port = 3000
 
 //미들웨어 (순서가 매우 중요!) //next: 말 그대로 다음 미들웨어로 넘어가는 매개변수
 app.use(bodyParser.urlencoded({extended: false}))
-app.use(cookieParser());
+//app.use(cookieParser());
+app.use(session({
+    secret: 'spxmdnjzmtndjq', 
+    resave: false,
+    saveUninitialized: true,
+    store: new fileStore()
+}))
+
+// 페이지 방문 횟수 응답
+app.use((req, res, next)=>{
+    if(!req.session.views)
+    {
+        req.session.views = 0;
+    }
+    req.session.views += 1;
+    next();
+})
 
 //readdir를 미드웨어로 //모든 get 요청에 대해서만 실행 (경로지정)
 app.get('*', (req, res, next)=>{
@@ -229,6 +247,10 @@ app.get('/users/:userId/key/:keyId', (res, req)=>{
     res.send(`${req.params.userId} ${res.params.keyId}`);
 })
 app.get('/users/:userId');
+
+app.get('/visit', (req, res)=>{
+    res.send(`당신은 이 페이지를 ${req.session.views}번 방문함.`);
+})
 
 //404 Not Found 미들웨어
 app.use((req, res, next)=>{
