@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const url = require('url');
 const fs = require('fs');
 const qs = require('querystring');
+const cookieParser = require('cookie-parser');
 const templateObject = require('./lib/template.js');
 
 const app = express()
@@ -12,6 +13,7 @@ const port = 3000
 
 //미들웨어 (순서가 매우 중요!) //next: 말 그대로 다음 미들웨어로 넘어가는 매개변수
 app.use(bodyParser.urlencoded({extended: false}))
+app.use(cookieParser());
 
 //readdir를 미드웨어로 //모든 get 요청에 대해서만 실행 (경로지정)
 app.get('*', (req, res, next)=>{
@@ -46,8 +48,10 @@ app.get('/', (req, res) => {
         //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         //res.end(template);
 
+        //쿠키 전달
+        res.cookie('myCookie', '홍길동');
+        console.log(req.cookies);
         res.send(template); //writeHead + end
-    
 });
 
 //목차 페이지 라우팅(라우트 파라미터 사용)
