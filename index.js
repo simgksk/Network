@@ -51,11 +51,16 @@ app.get('/', (req, res) => {
 });
 
 //목차 페이지 라우팅(라우트 파라미터 사용)
-app.get('/page/:pageId', (req, res)=>{
+app.get('/page/:pageId', (req, res, next)=>{
     fs.readdir('./page', function(err, filelist)
     {
         fs.readFile(`page/${req.params.pageId}`, 'utf-8', function(err, data) //list를 data에 저장
         {
+            if(err)
+            {
+                next(err); // 에러 처리 미들웨어로 전달
+                return;
+            }
             const title = req.params.pageId;
             const list = templateObject.list(req.list);
             const deleteForm =`
@@ -220,6 +225,17 @@ app.get('/users/:userId/key/:keyId', (res, req)=>{
     res.send(`${req.params.userId} ${res.params.keyId}`);
 })
 app.get('/users/:userId');
+
+//404 Not Found 미들웨어
+app.use((req, res, next)=>{
+    res.status(404).send('404 NOT FOUND');
+})
+
+//진짜 에러 처리 미들웨어
+app.use((err, req, res, next)=>{
+    console.error(err.stack);
+    res.status(500).send('에러에러에러');
+})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
