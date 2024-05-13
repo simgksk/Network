@@ -13,6 +13,12 @@ const templateObject = require('./lib/template.js');
 const app = express()
 const port = 3000
 
+const authData = {
+    email: 'ggm123@gh.com',
+    password: '122333',
+    nickName: '홍길동'
+}
+
 //미들웨어 (순서가 매우 중요!) //next: 말 그대로 다음 미들웨어로 넘어가는 매개변수
 app.use(bodyParser.urlencoded({extended: false}))
 //app.use(cookieParser());
@@ -250,6 +256,46 @@ app.get('/users/:userId');
 
 app.get('/visit', (req, res)=>{
     res.send(`당신은 이 페이지를 ${req.session.views}번 방문함.`);
+})
+
+//로그인 라우트
+app.get('/auth/login', (req, res)=>{
+    const title = '로그인 페이지';
+    const list = templateObject.list(req.list);
+    const data = `
+            <form action="http://localhost:3000/process_login" method="post">
+                <input type="text" name="email" placeholder="email">
+                <p>
+                <input type="password" name="password" placeholder="password">
+                </p>
+                <p>
+                <input type="submit" value="로그인">
+                </p>
+            </form>
+    `
+    const html = templateObject.html(title, list, data, '');
+    res.send(html);
+})
+
+app.post('/process_login', (req, res)=>{
+    const postData = req.body;
+    const email = postData.email;
+    const password = postData.password;
+
+    if(email === authData.email && password === authData.password)
+    {
+        //res.send('로그인 성공');
+        //로그인 성공 => 닉네임, 로그인 여부를 세션에 저장
+        req.session.is_logined = true;
+        req.session.nickName = authData.nickName;
+        req.session.save(()=>{
+            res.redirect('/');
+        })
+    }
+    else
+    {
+        res.send('로그인 실패');
+    }
 })
 
 //404 Not Found 미들웨어
