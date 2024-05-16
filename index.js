@@ -9,6 +9,7 @@ const qs = require('querystring');
 const session = require('express-session');
 const fileStore = require('session-file-store')(session);
 const templateObject = require('./lib/template.js');
+const authStatus = require('./lib/auth.js');
 
 const app = express()
 const port = 3000
@@ -54,28 +55,27 @@ app.use(express.static('public'));
 //라우팅 --> path마다 응답
 //메인 페이지
 app.get('/', (req, res) => {
-
     //const queryData = url.parse(req.url, true).query;
 
     //파일 목록 불러오기
     
-        const title = 'Welcome';
-        const data = `첫 번째 페이지
-        <p>
-            <img src="/BMO.jpg" style="width:300px">
-        </p>
-        `;
+    const title = 'Welcome';
+    const data = `첫 번째 페이지
+    <p>
+        <img src="/BMO.jpg" style="width:300px">
+    </p>
+    `;
 
-        const list = templateObject.list(req.list);
-        const template = templateObject.html(title, list, data, '');
+    const list = templateObject.list(req.list);
+    const template = templateObject.html(title, list, data, '', authStatus(req,res));
 
-        //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-        //res.end(template);
+    //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    //res.end(template);
 
-        //쿠키 전달
-        res.cookie('myCookie', '홍길동');
-        console.log(req.cookies);
-        res.send(template); //writeHead + end
+    //쿠키 전달
+    res.cookie('myCookie', '홍길동');
+    console.log(req.cookies);
+    res.send(template); //writeHead + end
 });
 
 //목차 페이지 라우팅(라우트 파라미터 사용)
@@ -99,7 +99,7 @@ app.get('/page/:pageId', (req, res, next)=>{
                 </form>
             `;
     
-            const template = templateObject.html(title, list, data, `<a href="/update/${title}">글 수정</a> ${deleteForm}`);
+            const template = templateObject.html(title, list, data, `<a href="/update/${title}">글 수정</a> ${deleteForm}`, authStatus(req,res));
             // 수정할 글의 제목을 라우트 파라미터 형식으로 변경
     
             //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
@@ -130,7 +130,7 @@ app.get('/create', (req, res)=>{
                 </p>
             </form>
         `;
-        const template = templateObject.html(title, list, data, "");
+        const template = templateObject.html(title, list, data, "", authStatus(req,res));
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end(template)
     })
@@ -188,7 +188,7 @@ app.get('/update/:pageId', (req, res)=>{
                     </p>
                         </form>
                 `;
-                const template = templateObject.html(title, list, data, `<a href="/page/{title}">글 수정</a>`);
+                const template = templateObject.html(title, list, data, `<a href="/page/{title}">글 수정</a>`, authStatus(req,res));
                 //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                 res.send(template)
             })
@@ -273,7 +273,7 @@ app.get('/auth/login', (req, res)=>{
                 </p>
             </form>
     `
-    const html = templateObject.html(title, list, data, '');
+    const html = templateObject.html(title, list, data, '', authStatus(req,res));
     res.send(html);
 })
 
