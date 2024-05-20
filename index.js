@@ -112,6 +112,10 @@ app.get('/page/:pageId', (req, res, next)=>{
    
 //글 쓰기 라우팅
 app.get('/create', (req, res)=>{
+    if(!req.session.is_logined){
+        res.redirect('/');
+        return false;
+    }
     fs.readdir('./page', function(err, filelist){
         const title = '글 쓰기 페이지';
         const list = templateObject.list(req.list);
@@ -166,6 +170,10 @@ app.post('/process_create', (req, res)=>{
 
 //글 수정 라우터
 app.get('/update/:pageId', (req, res)=>{
+    if(!req.session.is_logined){
+        res.redirect('/');
+        return false;
+    }
         fs.readdir('./page', function(err, filelist){
             fs.readFile(`page/${req.params.pageId}`, 'utf-8', function(err, fileData){
 
@@ -240,6 +248,10 @@ app.post('/process_delete', (req, res)=>{
 
         //글 삭제 (디렉토리에서 파일을 삭제)
     })*/
+    if(!req.session.is_logined){
+        res.redirect('/');
+        return false;
+    }
     const postData = req.body;
     const id = postData.id 
     fs.unlink(`page/${id}`, function(){
