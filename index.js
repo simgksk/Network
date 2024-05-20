@@ -30,6 +30,47 @@ app.use(session({
     store: new fileStore()
 }))
 
+//passport 관련 모아두기 (session 다음에 위치)
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+//로그인 성공 passport에서 세션 처리
+passport.serializeUser((user, done) => {
+    console.log('SerializeUser: ', user); // user는 authData
+    done(null, user.email);
+})
+
+passport.deserializeUser((id, done)=>{
+    done(null, authData);
+})
+
+// passport 체계로 로그인 변경
+app.post('/process_login', passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/auth/login'
+}));
+
+passport.use(new LocalStrategy(function verify(username, password, cb){
+    console.log('Local: ', username, password);
+    if(username === authData.email){
+        if(password === authData.password){
+            return cb(null, authData); //로그인 성공 시 사용자 데이터 전달
+        }
+        else{
+            //로그인 실패
+            return cb(null, false, {message: "비밀번호 틀림"});
+        }
+    }
+    else{
+        //로그인 실패
+        return cb(null, false, {message: "없는 사용자 이메일"});
+    }
+
+}));
+
 // 페이지 방문 횟수 응답
 app.use((req, res, next)=>{
     if(!req.session.views)
@@ -276,7 +317,7 @@ app.get('/auth/login', (req, res)=>{
     const list = templateObject.list(req.list);
     const data = `
             <form action="http://localhost:3000/process_login" method="post">
-                <input type="text" name="email" placeholder="email">
+                <input type="text" name="username" placeholder="username">
                 <p>
                 <input type="password" name="password" placeholder="password">
                 </p>
@@ -289,6 +330,7 @@ app.get('/auth/login', (req, res)=>{
     res.send(html);
 })
 
+/*
 app.post('/process_login', (req, res)=>{
     const postData = req.body;
     const email = postData.email;
@@ -309,6 +351,7 @@ app.post('/process_login', (req, res)=>{
         res.send('로그인 실패');
     }
 })
+*/
 
 app.get('/auth/logout', (req, res)=>{
     req.session.destroy((err)=>{
