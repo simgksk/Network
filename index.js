@@ -99,7 +99,7 @@ app.get('/', (req, res) => {
     //const queryData = url.parse(req.url, true).query;
 
     //파일 목록 불러오기
-    
+    console.log(req.user);
     const title = 'Welcome';
     const data = `첫 번째 페이지
     <p>
@@ -153,7 +153,7 @@ app.get('/page/:pageId', (req, res, next)=>{
    
 //글 쓰기 라우팅
 app.get('/create', (req, res)=>{
-    if(!req.session.is_logined){
+    if(!req.user){
         res.redirect('/');
         return false;
     }
@@ -211,7 +211,7 @@ app.post('/process_create', (req, res)=>{
 
 //글 수정 라우터
 app.get('/update/:pageId', (req, res)=>{
-    if(!req.session.is_logined){
+    if(!req.user){
         res.redirect('/');
         return false;
     }
@@ -289,7 +289,7 @@ app.post('/process_delete', (req, res)=>{
 
         //글 삭제 (디렉토리에서 파일을 삭제)
     })*/
-    if(!req.session.is_logined){
+    if(!req.user){
         res.redirect('/');
         return false;
     }
