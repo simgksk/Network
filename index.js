@@ -14,6 +14,15 @@ const authStatus = require('./lib/auth.js');
 const app = express()
 const port = 3000
 
+//lowdb
+const low = require('lowdb');
+const FileSync = require('lowdb/adapters/FileSync');
+const adapter = new FileSync('db.json');
+const db = low(adapter);
+
+db.defaults({users: []}).write;
+
+//실습 예제
 const authData = {
     email: 'ggm123@gh.com',
     password: '122333',
@@ -96,7 +105,6 @@ app.use(express.static('public'));
 //라우팅 --> path마다 응답
 //메인 페이지
 app.get('/', (req, res) => {
-    //const queryData = url.parse(req.url, true).query;
 
     //파일 목록 불러오기
     console.log(req.user);
@@ -109,10 +117,6 @@ app.get('/', (req, res) => {
 
     const list = templateObject.list(req.list);
     const template = templateObject.html(title, list, data, '', authStatus(req,res));
-
-    //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-    //res.end(template);
-
     //쿠키 전달
     res.cookie('myCookie', '홍길동');
     console.log(req.cookies);
@@ -141,11 +145,6 @@ app.get('/page/:pageId', (req, res, next)=>{
             `;
     
             const template = templateObject.html(title, list, data, `<a href="/update/${title}">글 수정</a> ${deleteForm}`, authStatus(req,res));
-            // 수정할 글의 제목을 라우트 파라미터 형식으로 변경
-    
-            //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-            //res.end(template); //저장한 데이터를 출력
-    
             res.send(template);
         })
     })
@@ -183,28 +182,11 @@ app.get('/create', (req, res)=>{
 
 //post 방식으로 데이터를 보냈을 때
 app.post('/process_create', (req, res)=>{
-    /*let body = "";
-    req.on('data', function(data){
-        //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
-        body += data;
-    })
-
-    req.on('end', function(){
-        const postData = qs.parse(body);
-        const title = postData.title;
-        const description = postData.description;
-    })*/
-
-    //
     var postData = req.body;
     const title = postData.title;
     const description = postData.description;
 
         fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
-            //리다이렉션
-            //res.writeHead(302, {Location: encodeURI(`/page/${title}`)});
-            //res.end()
-            //express 리다이렉션
             res.redirect(encodeURI(`/page/${title}`));
         })
 });
@@ -245,19 +227,6 @@ app.get('/update/:pageId', (req, res)=>{
 })
 
 app.post('/process_update', (req, res)=>{
-    //post 방식 데이터 받기
-    /*let body = "";
-    req.on('data', function(data){
-        //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
-        body += data;
-    })
-    req.on('end', function(){
-        const postData = qs.parse(body);
-        const title = postData.title;
-        const description = postData.description;
-        const id = postData.id //수정 전 제목
-
-    })*/
     const postData = req.body;
     const title = postData.title;
     const description = postData.description;
@@ -277,18 +246,6 @@ app.post('/process_update', (req, res)=>{
 })
 
 app.post('/process_delete', (req, res)=>{
-    //post 방식 데이터 받기
-    /*let body = "";
-    req.on('data', function(data){
-        //특정한 크기의 데이터를 수신할 때마다 콜백 함수 호출
-        body += data;
-    })
-    req.on('end', function(){
-        const postData = qs.parse(body);
-        const id = postData.id //삭제할 파일의 제목
-
-        //글 삭제 (디렉토리에서 파일을 삭제)
-    })*/
     if(!req.user){
         res.redirect('/');
         return false;
@@ -330,28 +287,37 @@ app.get('/auth/login', (req, res)=>{
     res.send(html);
 })
 
-/*
-app.post('/process_login', (req, res)=>{
-    const postData = req.body;
-    const email = postData.email;
-    const password = postData.password;
-
-    if(email === authData.email && password === authData.password)
-    {
-        //res.send('로그인 성공');
-        //로그인 성공 => 닉네임, 로그인 여부를 세션에 저장
-        req.session.is_logined = true;
-        req.session.nickName = authData.nickName;
-        req.session.save(()=>{
-            res.redirect('/');
-        })
-    }
-    else
-    {
-        res.send('로그인 실패');
-    }
+//회원가입 라우트
+app.get('/auth/register', (req, res)=>{
+    const title = '회원가입 페이지';
+    const list = templateObject.list(req.list);
+    const data = `
+            <form action="http://localhost:3000/process_register" method="post">
+                <input type="text" name="username" placeholder="email">
+                <p>
+                <input type="password" name="password" placeholder="password">
+                </p>
+                <p>
+                <input type="password" name="password2" placeholder="password 확인">
+                </p>
+                <p>
+                <input type="text" name="displayName" placeholder="닉네임">
+                <input type="submit" value="로그인">
+                </p>
+            </form>
+    `
+    const html = templateObject.html(title, list, data, '', authStatus(req,res));
+    res.send(html);
 })
-*/
+
+app.post('/process_register', (req, res) => {
+    const postData = req.body;
+    const email = postData.username;
+    const pwd = postData.password;
+    const pwd2 = postData.password2;
+    const displayName = postData.displayName;
+})
+
 
 app.get('/auth/logout', (req, res)=>{
     req.session.destroy((err)=>{
