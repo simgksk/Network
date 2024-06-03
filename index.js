@@ -10,7 +10,7 @@ const session = require('express-session');
 const fileStore = require('session-file-store')(session);
 const templateObject = require('./lib/template.js');
 const authStatus = require('./lib/auth.js');
-
+const shortid = require('shortid');
 const app = express()
 const port = 3000
 
@@ -20,7 +20,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 const adapter = new FileSync('db.json');
 const db = low(adapter);
 
-db.defaults({users: []}).write;
+db.defaults({users: []}).write();
 
 //실습 예제
 const authData = {
@@ -47,13 +47,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //로그인 성공 passport에서 세션 처리
-passport.serializeUser((user, done) => {
-    console.log('SerializeUser: ', user); // user는 authData
-    done(null, user.email);
+passport.serializeUser((userid, done) => {
+    //console.log('SerializeUser: ', user); // user는 authData
+    const user = db.get(usres).find({id:userid}).value();
+    done(null, user.id);
 })
 
-passport.deserializeUser((id, done)=>{
-    done(null, authData);
+passport.deserializeUser((userid, done)=>{
+    //console.log(userid);
+    const user = db.get(usres).find({id:userid}).value();
+    done(null, user.id);
 })
 
 // passport 체계로 로그인 변경
@@ -302,7 +305,8 @@ app.get('/auth/register', (req, res)=>{
                 </p>
                 <p>
                 <input type="text" name="displayName" placeholder="닉네임">
-                <input type="submit" value="로그인">
+                <br><br>
+                <input type="submit" value="회원가입">
                 </p>
             </form>
     `
@@ -316,6 +320,19 @@ app.post('/process_register', (req, res) => {
     const pwd = postData.password;
     const pwd2 = postData.password2;
     const displayName = postData.displayName;
+
+    if(pwd !== pwd2){
+        return res.redirect('/auth/register');
+    }
+
+    //db에 저장
+    const user = {id: shortid.generate(), email: email, pwd: pwd, displayName: displayName};
+    db.get('users').push(user).write();
+
+    //회원가입 후 로그인
+    req.logIn(user, (err)=>{
+        return res.redirect('/');
+    });
 })
 
 
