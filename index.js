@@ -20,14 +20,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 const adapter = new FileSync('db.json');
 const db = low(adapter);
 
-db.defaults({users: []}).write();
-
-//실습 예제
-const authData = {
-    email: 'ggm123@gh.com',
-    password: '122333',
-    nickName: '홍길동'
-}
+db.defaults({users: [], topics: []}).write();
 
 //미들웨어 (순서가 매우 중요!) //next: 말 그대로 다음 미들웨어로 넘어가는 매개변수
 app.use(bodyParser.urlencoded({extended: false}))
@@ -47,16 +40,14 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //로그인 성공 passport에서 세션 처리
-passport.serializeUser((userid, done) => {
-    //console.log('SerializeUser: ', user); // user는 authData
-    const user = db.get(usres).find({id:userid}).value();
+passport.serializeUser((user, done) => {
     done(null, user.id);
 })
 
 passport.deserializeUser((userid, done)=>{
     //console.log(userid);
-    const user = db.get(usres).find({id:userid}).value();
-    done(null, user.id);
+    const user = db.get('users').find({id:userid}).value();
+    done(null, user);
 })
 
 // passport 체계로 로그인 변경
@@ -67,20 +58,15 @@ app.post('/process_login', passport.authenticate('local', {
 
 passport.use(new LocalStrategy(function verify(username, password, cb){
     console.log('Local: ', username, password);
-    if(username === authData.email){
-        if(password === authData.password){
-            return cb(null, authData); //로그인 성공 시 사용자 데이터 전달
-        }
-        else{
-            //로그인 실패
-            return cb(null, false, {message: "비밀번호 틀림"});
-        }
+    const user = db.get('users').find({email: username, pwd: password}).value();
+    if(user){
+        //로그인
+        return cb(null, user);
     }
     else{
         //로그인 실패
-        return cb(null, false, {message: "없는 사용자 이메일"});
+        return cb(null, false, {message: "User not found"});
     }
-
 }));
 
 // 페이지 방문 횟수 응답
@@ -128,16 +114,9 @@ app.get('/', (req, res) => {
 
 //목차 페이지 라우팅(라우트 파라미터 사용)
 app.get('/page/:pageId', (req, res, next)=>{
-    fs.readdir('./page', function(err, filelist)
-    {
-        fs.readFile(`page/${req.params.pageId}`, 'utf-8', function(err, data) //list를 data에 저장
-        {
-            if(err)
-            {
-                next(err); // 에러 처리 미들웨어로 전달
-                return;
-            }
-            const title = req.params.pageId;
+    const topic = db.get('topics').find({id: req.params.pageId}).value();
+    const writer = db.get('users').find({id: topic.user_id}).value();
+            const title = topic.title;
             const list = templateObject.list(req.list);
             const deleteForm =`
                 <form action="/process_delete" method="post">
@@ -147,10 +126,10 @@ app.get('/page/:pageId', (req, res, next)=>{
                 </form>
             `;
     
-            const template = templateObject.html(title, list, data, `<a href="/update/${title}">글 수정</a> ${deleteForm}`, authStatus(req,res));
+            const template = templateObject.html(title, list, topic.des + `<p> by. ${writer.displayName}</p>`,
+            `<a href="/update/${title}">글 수정</a> ${deleteForm}`, authStatus(req,res));
+            //수정할 글의 제목을 라우트 파라미터로 형식으로 저장
             res.send(template);
-        })
-    })
 });
    
 //글 쓰기 라우팅
@@ -189,9 +168,14 @@ app.post('/process_create', (req, res)=>{
     const title = postData.title;
     const description = postData.description;
 
-        fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
-            res.redirect(encodeURI(`/page/${title}`));
-        })
+        //fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
+            //res.redirect(encodeURI(`/page/${title}`));
+        //})
+
+        //db에 저장
+        var topic = {id: shortid.generate(), title: title, des: description, user_id: req.user.id};
+        db.get('topics').push(topic).write();
+        res.redirect(`/page/${id}`);
 });
 
 //글 수정 라우터
