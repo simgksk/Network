@@ -81,11 +81,16 @@ app.use((req, res, next)=>{
 
 //readdir를 미드웨어로 //모든 get 요청에 대해서만 실행 (경로지정)
 app.get('*', (req, res, next)=>{
-    //폴더 내 글 목록을 list에 저장
-    fs.readdir('./page', function(err, filelist){
-        req.list = filelist;
-        next(); //req 데이터를 그대로 다음 미들웨어로 전달
-    });
+    // //폴더 내 글 목록을 list에 저장
+    // fs.readdir('./page', function(err, filelist){
+    //     req.list = filelist;
+    //     next(); //req 데이터를 그대로 다음 미들웨어로 전달
+    // });
+
+    //폴더 내 글 목록 filelist에 저장
+    const filelist = db.get('topics').value();
+    req.list = filelist;
+    next();
 })
 
 //정적 파일 미들웨어
@@ -175,7 +180,7 @@ app.post('/process_create', (req, res)=>{
         //db에 저장
         var topic = {id: shortid.generate(), title: title, des: description, user_id: req.user.id};
         db.get('topics').push(topic).write();
-        res.redirect(`/page/${id}`);
+        res.redirect(`/page/${topic.id}`);
 });
 
 //글 수정 라우터
