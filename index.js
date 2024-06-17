@@ -121,18 +121,18 @@ app.get('/', (req, res) => {
 app.get('/page/:pageId', (req, res, next)=>{
     const topic = db.get('topics').find({id: req.params.pageId}).value();
     const writer = db.get('users').find({id: topic.user_id}).value();
-            const title = topic.title;
-            const list = templateObject.list(req.list);
-            const deleteForm =`
-                <form action="/process_delete" method="post">
-                <!-- 삭제할 글 제목 -->
-                    <input type="hidden" name="id" value="${title}">
-                        <input type="submit" value="delete">
-                </form>
-            `;
+    const title = topic.title;
+    const list = templateObject.list(req.list);
+    const deleteForm =`
+        <form action="/process_delete" method="post">
+        <!-- 삭제할 글 제목 -->
+            <input type="hidden" name="id" value="${topic.id}">
+            <input type="submit" value="delete">
+        </form>
+     `;
     
             const template = templateObject.html(title, list, topic.des + `<p> by. ${writer.displayName}</p>`,
-            `<a href="/update/${title}">글 수정</a> ${deleteForm}`, authStatus(req,res));
+            `<a href="/update/${topic.id}">글 수정</a> ${deleteForm}`, authStatus(req,res));
             //수정할 글의 제목을 라우트 파라미터로 형식으로 저장
             res.send(template);
 });
@@ -189,52 +189,43 @@ app.get('/update/:pageId', (req, res)=>{
         res.redirect('/');
         return false;
     }
-        fs.readdir('./page', function(err, filelist){
-            fs.readFile(`page/${req.params.pageId}`, 'utf-8', function(err, fileData){
-
-                const title = req.params.pageId; //수정하려는 글의 제목
-                const list = templateObject.list(filelist);
-                const data = `
-                <form action="http://localhost:3000/process_update" method="post">
-                    <p>
-                        <!-- 수정 전 제목 전달 -->
-                        <input type="hidden" name="id" value=${title}>
-                        <input type="text" name="title" value=${title}>
-                    </p>
-                
-                    <p>
-                        <textarea name="description" placeholder="본문">${fileData}</textarea>
-                    </p>
-                
-                    <p>
-                        <input type="submit">
-                    </p>
-                        </form>
-                `;
+    const topic = db.get('topics').find({id: req.params.pageId}).value();
+    const title = topic.title; //수정하려는 글의 제목
+    const list = templateObject.list(req.list);
+    const fileData = topic.des;
+    const data = `
+            <form action="http://localhost:3000/process_update" method="post">
+                <p>
+                    <!-- 수정 전 제목 전달 -->
+                    <input type="hidden" name="id" value=${topic.id}>
+                    <input type="text" name="title" value=${title}>
+                 </p>
+                <p>
+                    <textarea name="description" placeholder="본문">${fileData}</textarea>
+                </p>
+                <p>
+                    <input type="submit">
+                </p>
+                    </form>
+            `;
                 const template = templateObject.html(title, list, data, `<a href="/page/{title}">글 수정</a>`, authStatus(req,res));
                 //res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
                 res.send(template)
-            })
-        })
 })
 
 app.post('/process_update', (req, res)=>{
     const postData = req.body;
     const title = postData.title;
     const description = postData.description;
-    const id = postData.id
-    //글 수정
-    //1. 제목 변경
-    fs.rename(`page/${id}`, `page/${title}`, function(err){
-        //2. 본문 변경
-        fs.writeFile(`page/${title}`, description, 'utf-8', function(err){
-            //리다이렉션
-            //res.writeHead(302, {Location: encodeURI(`/page/${title}`)});
-            //res.end()
-
-            res.redirect(`/page/${title}`)
-        })
-    })
+    const id = postData.id //수정 전 제목
+    
+    //db에서 글 수정하기
+    const topic = db.get('topics').find({id: id}).value();
+    if(topic.user_id !== req.user.id){
+        return res.redirect('/');
+    }
+    db.get('topics').find({id: id}).assign({title: title, des: description}).write();
+    res.redirect(`/page/${id}`);
 })
 
 app.post('/process_delete', (req, res)=>{
@@ -244,10 +235,14 @@ app.post('/process_delete', (req, res)=>{
     }
     const postData = req.body;
     const id = postData.id 
-    fs.unlink(`page/${id}`, function(){
-        //파일 삭제가 끝나면 메인 화면으로 리다이렉션
-        res.redirect('/');
-    })
+
+    //db에서 글 삭제
+    const topic = db.get('topics').find({id: id}).value();
+    if(topic.user_id !== req.user.id){
+        return res.redirect('/');
+    }
+    db.get('topics').remove({id: id}).write();
+    res.redirect('/');
 })
 
 //라우트 파라미터 (userId)
