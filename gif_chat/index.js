@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const dotenv = require('dotenv');
 const session = require('express-session');
-const fileStore = require('session-file-store');
+const fileStore = require('session-file-store')(session);
 const nunjucks = require('nunjucks');
 const webSocket = require('./socket');
 const port = 3001;
@@ -23,7 +23,7 @@ app.use(express({
 }))
 
 app.get('/', (req, res)=>{
-    res.send('Hello world!');
+    res.render('index');
 })
 
 const server = app.listen(port, ()=>{
